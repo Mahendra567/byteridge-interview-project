@@ -5,5 +5,5 @@ mongoose.Promise = global.Promise;
 
 module.exports = {
     User: require('../users/user.model'),
-    UserLogHistory:require('../users/user-log.model')
+    UserHistory:require('../users/user-log.model')
 };

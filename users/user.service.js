@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('_helpers/db');
 const User = db.User;
-const UserLogHistory = db.UserLogHistory;
+const UserHistory = db.UserHistory;
 module.exports = {
     authenticate,
     getAll,
@@ -16,30 +16,38 @@ module.exports = {
 };
 
 async function logout(id) {
-    await UserLogHistory.updateOne({ userId : id ,logoutAt:null },{ $set:{'logoutAt' : new Date()}});
+    await UserHistory.update({userId:id,'logs.logoutAt':null},{ $set:{'logs.$.logoutAt': new Date(),'isActive':false }})
 }
 
 async function getUserLogs(id) {
     let user = await User.findOne({_id : id});
     if((user.role).toLowerCase() == 'auditor') {
-        return await UserLogHistory.find();
+        return await UserHistory.find();
     }
 }
 
 async function saveUserLog(data) {
     const ip = require('ip')
-    let userHis = await UserLogHistory.findOne({"logoutAt":null},{userId : data.id});
+    let userHis = await UserHistory.findOne({userId : data.id});
+    let obj = {
+        loginAt : new Date(),
+        clientIp:ip.address(),
+    }
     if(!userHis) {
-        let obj = {
+        let userLogObj={
             userId:data.id,
-            loginAt : new Date(),
-            clientIp:ip.address(),
-            isLogedIn:true
-        }
-        let userLogHistory = new UserLogHistory(obj);
-        await userLogHistory.save()
+            isActive:true,
+            fullName:data.firstName+" " + data.lastName,
+            logs:[]
+        };
+        userLogObj.logs.push(obj);
+        
+        let userHistory = new UserHistory(userLogObj);
+        await userHistory.save()
     } else {
-        throw new Error(`Please log out first!(visit-http://localhost:4000/users/logout/${data.id})`)
+      await UserHistory.updateOne({ userId : data.id },{ $push : {"logs": obj }})
+
+        // throw new Error(`Please log out first!(visit-http://localhost:4000/users/logout/${data.id})`)
     }
 }
 
