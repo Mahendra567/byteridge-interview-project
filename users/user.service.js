@@ -16,6 +16,7 @@ module.exports = {
 };
 
 async function logout(id) {
+    //need to expire token once log out .
     await UserHistory.update({userId:id,'logs.logoutAt':null},{ $set:{'logs.$.logoutAt': new Date(),'isActive':false }})
 }
 
